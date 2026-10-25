@@ -1,0 +1,143 @@
+// SalonFlow — Salon & Barber Booking + POS
+// Single-salon management system. Prices stored in minor units (cents).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ── Salon configuration (single row, id = "main") ──────────────────────────
+model Setting {
+  id             String   @id @default("main")
+  salonName      String   @default("Aurelia Salon & Spa")
+  tagline        String   @default("Where beauty meets ritual")
+  about          String   @default("")
+  address        String   @default("")
+  phone          String   @default("")
+  email          String   @default("")
+  currencySymbol String   @default("$")
+  openMin        Int      @default(540) // 09:00
+  closeMin       Int      @default(1140) // 19:00
+  slotStepMin    Int      @default(15)
+  closedDays     String   @default("0") // weekday numbers, 0=Sunday
+  adminPin       String   @default("aurelia2024")
+  heroImage      String   @default("")
+  galleryJson    String   @default("[]")
+  updatedAt      DateTime @updatedAt
+}
+
+// ── Service menu ───────────────────────────────────────────────────────────
+model Service {
+  id          String       @id @default(cuid())
+  name        String
+  category    String
+  description String       @default("")
+  price       Int // cents
+  durationMin Int
+  imageUrl    String       @default("")
+  active      Boolean      @default(true)
+  sortOrder   Int          @default(0)
+  createdAt   DateTime     @default(now())
+  staff       ServiceStaff[]
+  appointments Appointment[]
+}
+
+// ── Team ───────────────────────────────────────────────────────────────────
+model Staff {
+  id            String       @id @default(cuid())
+  name          String
+  title         String       @default("Stylist")
+  bio           String       @default("")
+  imageUrl      String       @default("")
+  commissionPct Float        @default(10) // % of service revenue
+  workingDays   String       @default("1,2,3,4,5,6") // weekday numbers
+  shiftStartMin Int          @default(540)
+  shiftEndMin   Int          @default(1140)
+  active        Boolean      @default(true)
+  sortOrder     Int          @default(0)
+  createdAt     DateTime     @default(now())
+  services      ServiceStaff[]
+  appointments  Appointment[]
+  sales         Sale[]
+}
+
+// which stylist can perform which service
+model ServiceStaff {
+  serviceId String
+  staffId   String
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  staff     Staff   @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@id([serviceId, staffId])
+}
+
+// ── Customers ──────────────────────────────────────────────────────────────
+model Customer {
+  id           String        @id @default(cuid())
+  name         String
+  phone        String        @unique
+  email        String?
+  notes        String?
+  createdAt    DateTime      @default(now())
+  appointments Appointment[]
+  sales        Sale[]
+}
+
+// ── Appointments ───────────────────────────────────────────────────────────
+// date is a plain "YYYY-MM-DD" string; startMin/endMin are minutes from midnight.
+// status: PENDING | CONFIRMED | COMPLETED | CANCELLED | NO_SHOW
+// source: ONLINE | ADMIN | WALK_IN
+model Appointment {
+  id         String    @id @default(cuid())
+  ref        String    @unique
+  customerId String
+  staffId    String
+  serviceId  String
+  date       String
+  startMin   Int
+  endMin     Int
+  status     String    @default("CONFIRMED")
+  source     String    @default("ONLINE")
+  notes      String?
+  createdAt  DateTime  @default(now())
+  customer   Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  staff      Staff     @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  service    Service   @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  sales      Sale[]
+
+  @@index([date, status])
+  @@index([staffId, date])
+}
+
+// ── Retail products (sold through POS) ─────────────────────────────────────
+model Product {
+  id     String  @id @default(cuid())
+  name   String
+  brand  String  @default("")
+  price  Int // cents
+  stock  Int     @default(0)
+  active Boolean @default(true)
+}
+
+// ── Sales (POS receipts) ───────────────────────────────────────────────────
+// items JSON: [{ kind: "service"|"product", id, name, price, qty, staffId? }]
+model Sale {
+  id            String       @id @default(cuid())
+  receiptNo     String       @unique
+  customerId    String?
+  staffId       String?
+  appointmentId String?
+  items         String
+  subtotal      Int
+  discount      Int          @default(0)
+  total         Int
+  method        String       @default("CASH") // CASH | CARD | MOBILE
+  createdAt     DateTime     @default(now())
+  customer      Customer?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  staff         Staff?       @relation(fields: [staffId], references: [id], onDelete: SetNull)
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+}
