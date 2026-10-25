@@ -86,6 +86,16 @@ export default function AdminApp() {
     window.location.hash = view === "dashboard" ? "#/admin" : `#/admin/${view}`;
   }, [view]);
 
+  // keep the active view in sync when the hash changes (back/forward, deep links)
+  useEffect(() => {
+    const onHash = () => {
+      const h = window.location.hash.replace("#/admin", "").replace("/", "");
+      setView((ALL_KEYS.includes(h) ? h : "dashboard") as ViewKey);
+    };
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
+
   const logout = async () => {
     await fetch("/api/admin/logout", { method: "POST" });
     queryClient.clear();
@@ -135,7 +145,7 @@ export default function AdminApp() {
         >
           Lock the console
         </button>
-        <p className="text-[10px] text-sidebar-foreground/30 px-3.5 pt-1.5">SalonFlow · v1.4</p>
+        <p className="text-[10px] text-sidebar-foreground/30 px-3.5 pt-1.5">SalonFlow · v1.5</p>
       </div>
     </nav>
   );
@@ -212,7 +222,7 @@ function Login({ onSuccess }: { onSuccess: () => void }) {
   useEffect(() => {
     fetch("/api/public/site")
       .then((r) => (r.ok ? r.json() : null))
-      .then((s) => s?.setting?.heroImage && setHero(s.setting.heroImage))
+      .then((s) => s?.settings?.heroImage && setHero(s.settings.heroImage))
       .catch(() => null);
   }, []);
 

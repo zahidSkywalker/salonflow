@@ -4,11 +4,10 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 /* ── money ─────────────────────────────────────────────────────────────── */
+// Registers always print two decimals — $96.7 is how bugs look, not money.
 export function money(cents: number, symbol = "$"): string {
-  const v = cents / 100;
-  const hasFraction = Math.round(cents) !== cents;
-  return `${symbol}${v.toLocaleString("en-US", {
-    minimumFractionDigits: hasFraction ? 2 : 0,
+  return `${symbol}${(cents / 100).toLocaleString("en-US", {
+    minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`;
 }

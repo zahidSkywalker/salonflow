@@ -211,9 +211,14 @@ export default function POS({ currencySymbol }: { currencySymbol: string }) {
           </CardHeader>
           <CardContent className="space-y-4">
             {cart.length === 0 ? (
-              <div className="text-center py-10 text-muted-foreground">
-                <ReceiptText className="w-10 h-10 mx-auto opacity-30" />
-                <p className="text-sm mt-3">Tap catalog items to add them.</p>
+              <div className="relative rounded-xl overflow-hidden text-center">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/images/craft-detail.jpg" alt="" className="absolute inset-0 w-full h-full object-cover opacity-20" />
+                <div className="relative py-10 text-muted-foreground">
+                  <ReceiptText className="w-10 h-10 mx-auto opacity-40" />
+                  <p className="text-sm mt-3 font-medium text-foreground/70">The register is quiet.</p>
+                  <p className="text-xs mt-1">Tap catalog items to start a sale.</p>
+                </div>
               </div>
             ) : (
               <div className="space-y-2 max-h-56 overflow-y-auto pr-1">

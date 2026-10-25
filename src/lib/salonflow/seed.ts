@@ -38,36 +38,38 @@ const nowMin = () => {
 };
 
 /* ── reference data ────────────────────────────────────────────────────── */
-const IMG = "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt";
+// All photography ships inside the repo (public/images) — the product is
+// self-contained: no hot-links, no external CDNs, works offline after install.
+const IMG = "/images";
 
 const SERVICES: [string, string, string, number, number, string, number][] = [
   // name, category, description, price, duration, image, popularity weight
-  ["Signature Cut & Style", "Hair", "Consultation, precision cut, wash and a silk finish blow-dry.", 4500, 45, `${IMG}/4cd8e07d4d7f.jpg`, 10],
-  ["Blowout & Soft Waves", "Hair", "Volume wash, heat-protected blowout and hand-formed waves.", 3500, 40, `${IMG}/959f862065f9.jpg`, 8],
-  ["Keratin Repair Ritual", "Hair", "Deep bond-repair treatment for glossy, frizz-free hair for weeks.", 8500, 75, `${IMG}/4fc4c6f11b38.jpg`, 4],
-  ["Full Color Transformation", "Color", "Single-process color with gloss and take-home care plan.", 9500, 90, `${IMG}/24a098f0d610.jpg`, 4],
-  ["Balayage & Highlights", "Color", "Hand-painted dimension, toner and bond shield included.", 14000, 120, `${IMG}/d8fe78cb1b16.jpg`, 3],
-  ["Root Touch-Up", "Color", "Fast regrowth coverage blended to your existing shade.", 5500, 45, `${IMG}/aec32208ec03.jpg`, 5],
-  ["Classic Manicure", "Nails", "Shape, cuticle care, buff, hand massage and polish.", 2500, 30, `${IMG}/28b7d040ba52.jpg`, 8],
-  ["Gel Nail Art", "Nails", "Long-wear gel with custom art — chrome, french or freehand.", 4500, 50, `${IMG}/cd15e385424d.jpg`, 6],
-  ["Luxury Pedicure", "Nails", "Soak, callus care, scrub, mask and a perfect polish.", 4000, 45, `${IMG}/bad12dba44bd.jpg`, 5],
-  ["Deep-Cleanse Facial", "Skin & Facial", "Double cleanse, extraction, lymph massage and mask.", 7000, 60, `${IMG}/58c73728fd73.png`, 5],
-  ["Glow Peel Ritual", "Skin & Facial", "Gentle AHA peel with calming serum for instant radiance.", 9500, 70, `${IMG}/f483f6071c05.jpg`, 3],
-  ["Relaxing Body Massage", "Spa & Massage", "Full-body Swedish pressure tailored to your knots.", 9000, 60, `${IMG}/7e31671436f7.jpeg`, 5],
-  ["Head & Scalp Ritual", "Spa & Massage", "Slow scalp therapy that melts screens and deadlines away.", 5000, 40, `${IMG}/18e5dfcd8c3a.jpg`, 4],
-  ["Gentlemen's Cut", "Barber", "Scissor or clipper cut, hot towel finish and styling.", 3000, 30, `${IMG}/3ba7e93a33a9.jpg`, 9],
-  ["Beard Sculpt & Shave", "Barber", "Line-up, hot-towel shave and beard oil finish.", 2500, 25, `${IMG}/da491ac4d4cd.jpeg`, 7],
-  ["Cut + Beard Combo", "Barber", "The full reset — cut, beard sculpt and towel finish.", 4800, 55, `${IMG}/3ba7e93a33a9.jpg`, 6],
+  ["Signature Cut & Style", "Hair", "Consultation, precision cut, wash and a silk finish blow-dry.", 4500, 45, `${IMG}/services/signature-cut.jpg`, 10],
+  ["Blowout & Soft Waves", "Hair", "Volume wash, heat-protected blowout and hand-formed waves.", 3500, 40, `${IMG}/services/blowout-waves.jpg`, 8],
+  ["Keratin Repair Ritual", "Hair", "Deep bond-repair treatment for glossy, frizz-free hair for weeks.", 8500, 75, `${IMG}/services/keratin-ritual.jpg`, 4],
+  ["Full Color Transformation", "Color", "Single-process color with gloss and take-home care plan.", 9500, 90, `${IMG}/services/full-color.jpg`, 4],
+  ["Balayage & Highlights", "Color", "Hand-painted dimension, toner and bond shield included.", 14000, 120, `${IMG}/services/balayage.jpg`, 3],
+  ["Root Touch-Up", "Color", "Fast regrowth coverage blended to your existing shade.", 5500, 45, `${IMG}/services/root-touchup.jpg`, 5],
+  ["Classic Manicure", "Nails", "Shape, cuticle care, buff, hand massage and polish.", 2500, 30, `${IMG}/services/classic-manicure.jpg`, 8],
+  ["Gel Nail Art", "Nails", "Long-wear gel with custom art — chrome, french or freehand.", 4500, 50, `${IMG}/services/gel-nail-art.jpg`, 6],
+  ["Luxury Pedicure", "Nails", "Soak, callus care, scrub, mask and a perfect polish.", 4000, 45, `${IMG}/services/luxury-pedicure.jpg`, 5],
+  ["Deep-Cleanse Facial", "Skin & Facial", "Double cleanse, extraction, lymph massage and mask.", 7000, 60, `${IMG}/services/deep-cleanse-facial.jpg`, 5],
+  ["Glow Peel Ritual", "Skin & Facial", "Gentle AHA peel with calming serum for instant radiance.", 9500, 70, `${IMG}/services/glow-peel.jpg`, 3],
+  ["Relaxing Body Massage", "Spa & Massage", "Full-body Swedish pressure tailored to your knots.", 9000, 60, `${IMG}/services/body-massage.jpg`, 5],
+  ["Head & Scalp Ritual", "Spa & Massage", "Slow scalp therapy that melts screens and deadlines away.", 5000, 40, `${IMG}/services/scalp-ritual.jpg`, 4],
+  ["Gentlemen's Cut", "Barber", "Scissor or clipper cut, hot towel finish and styling.", 3000, 30, `${IMG}/services/gentlemens-cut.jpg`, 9],
+  ["Beard Sculpt & Shave", "Barber", "Line-up, hot-towel shave and beard oil finish.", 2500, 25, `${IMG}/services/beard-sculpt.jpg`, 7],
+  ["Cut + Beard Combo", "Barber", "The full reset — cut, beard sculpt and towel finish.", 4800, 55, `${IMG}/services/cut-beard-combo.jpg`, 6],
 ];
 
 // days-off staggered so the floor is covered every day of the week
 const STAFF: [string, string, string, number, string, string[], string, number, number][] = [
-  ["Isabella Moreau", "Master Stylist", "16 years behind the chair, trained in Paris. Cuts that grow out beautifully.", 12, `${IMG}/ce71d92e45ea.jpg`, ["Signature Cut & Style", "Blowout & Soft Waves", "Keratin Repair Ritual"], "0,2,3,4,5,6", 540, 1080],
-  ["Sofia Laurent", "Senior Colorist", "Balayage specialist — dimension that looks like you were born with it.", 12, `${IMG}/da0d8f17ddb6.jpeg`, ["Full Color Transformation", "Balayage & Highlights", "Root Touch-Up", "Blowout & Soft Waves"], "0,1,2,3,4,5", 540, 1140],
-  ["Maya Chen", "Lead Nail Artist", "Freehand art, chrome and clean gel work that lasts three weeks.", 10, `${IMG}/ef7173c23122.png`, ["Classic Manicure", "Gel Nail Art", "Luxury Pedicure"], "1,2,3,4,5,6", 570, 1140],
-  ["Amelia Rose", "Skin Therapist", "Results-driven facials with a spa-day soul. Sensitive skin welcome.", 10, `${IMG}/449394276a77.jpg`, ["Deep-Cleanse Facial", "Glow Peel Ritual"], "0,1,2,4,5,6", 600, 1110],
-  ["Daniya Rahman", "Spa Therapist", "Deep-pressure magic. Your shoulders will write you a thank-you note.", 10, `${IMG}/dfd317da3383.jpg`, ["Relaxing Body Massage", "Head & Scalp Ritual"], "0,1,2,3,5,6", 540, 1140],
-  ["Marcus Cole", "Master Barber", "Classic barbering, modern lines. Hot towels always included.", 11, `${IMG}/6b44f125712f.jpg`, ["Gentlemen's Cut", "Beard Sculpt & Shave", "Cut + Beard Combo"], "0,2,3,4,5,6", 600, 1140],
+  ["Isabella Moreau", "Master Stylist", "16 years behind the chair, trained in Paris. Cuts that grow out beautifully.", 12, `${IMG}/team/isabella.jpg`, ["Signature Cut & Style", "Blowout & Soft Waves", "Keratin Repair Ritual"], "0,2,3,4,5,6", 540, 1080],
+  ["Sofia Laurent", "Senior Colorist", "Balayage specialist — dimension that looks like you were born with it.", 12, `${IMG}/team/sofia.jpg`, ["Full Color Transformation", "Balayage & Highlights", "Root Touch-Up", "Blowout & Soft Waves"], "0,1,2,3,4,5", 540, 1140],
+  ["Maya Chen", "Lead Nail Artist", "Freehand art, chrome and clean gel work that lasts three weeks.", 10, `${IMG}/team/maya.jpg`, ["Classic Manicure", "Gel Nail Art", "Luxury Pedicure"], "1,2,3,4,5,6", 570, 1140],
+  ["Amelia Rose", "Skin Therapist", "Results-driven facials with a spa-day soul. Sensitive skin welcome.", 10, `${IMG}/team/amelia.jpg`, ["Deep-Cleanse Facial", "Glow Peel Ritual"], "0,1,2,4,5,6", 600, 1110],
+  ["Rosie Gallagher", "Spa Therapist", "Deep-pressure magic. Your shoulders will write you a thank-you note.", 10, `${IMG}/team/rosie.jpg`, ["Relaxing Body Massage", "Head & Scalp Ritual"], "0,1,2,3,5,6", 540, 1140],
+  ["Marcus Cole", "Master Barber", "Classic barbering, modern lines. Hot towels always included.", 11, `${IMG}/team/marcus.jpg`, ["Gentlemen's Cut", "Beard Sculpt & Shave", "Cut + Beard Combo"], "0,2,3,4,5,6", 600, 1140],
 ];
 
 // name, brand, price, stock, lowStockAt  — house & retail brands (fictional)
@@ -174,14 +176,14 @@ export async function seedDatabase(db: PrismaClient) {
       slotStepMin: 15,
       closedDays: "", // open all week — days off are staggered per specialist
       adminPin: "aurelia2024",
-      heroImage: `${IMG}/929df5bc6d89.png`,
+      heroImage: `${IMG}/hero.jpg`,
       galleryJson: JSON.stringify([
-        { url: `${IMG}/0a31f5f65edc.png`, caption: "The styling floor" },
-        { url: `${IMG}/1f7c8708a3a0.png`, caption: "Color bar" },
-        { url: `${IMG}/88b1443a4f3e.jpg`, caption: "Golden hour chairs" },
-        { url: `${IMG}/bf1671d4931d.webp`, caption: "Mirror suite" },
-        { url: `${IMG}/bc9844d143fb.jpg`, caption: "Detail corner" },
-        { url: `${IMG}/da491ac4d4cd.jpeg`, caption: "The gentleman's corner" },
+        { url: `${IMG}/gallery/g-styling-floor.jpg`, caption: "The styling floor" },
+        { url: `${IMG}/gallery/g-mirror-suite.jpg`, caption: "The mirror suite" },
+        { url: `${IMG}/gallery/g-morning-rush.jpg`, caption: "A Friday morning" },
+        { url: `${IMG}/gallery/g-team-day.jpg`, caption: "The team, off the clock" },
+        { url: `${IMG}/gallery/g-maintained.jpg`, caption: "Tools maintained daily" },
+        { url: `${IMG}/gallery/g-tool-wall.jpg`, caption: "The tool wall" },
       ]),
     },
   });
