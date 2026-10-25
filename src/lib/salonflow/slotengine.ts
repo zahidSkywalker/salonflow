@@ -1,5 +1,6 @@
+import type { Prisma, PrismaClient } from "@prisma/client";
 import { db } from "@/lib/db";
-import { minToLabel, nowMin, overlaps, weekdayOf } from "./time";
+import { minToLabel, salonClock, overlaps, weekdayOf } from "./time";
 
 export interface Slot {
   min: number;
@@ -7,21 +8,26 @@ export interface Slot {
   available: boolean;
 }
 
+/** Anything Prisma can run queries against (the client or a transaction). */
+export type DbLike = PrismaClient | Prisma.TransactionClient;
+
 const OPEN_STATUSES = ["PENDING", "CONFIRMED", "COMPLETED"];
 
 /**
  * Compute bookable slots for a service on a date.
  * staffId = "any" → slot is available when at least one eligible stylist is free.
+ * Pass a transaction client to make check-then-create atomic.
  */
 export async function computeSlots(
   serviceId: string,
   staffId: string,
-  date: string
+  date: string,
+  client: DbLike = db as PrismaClient
 ): Promise<Slot[]> {
-  const service = await db.service.findUnique({ where: { id: serviceId } });
+  const service = await client.service.findUnique({ where: { id: serviceId } });
   if (!service || !service.active) return [];
 
-  const setting = await db.setting.findUnique({ where: { id: "main" } });
+  const setting = await client.setting.findUnique({ where: { id: "main" } });
   if (!setting) return [];
 
   const openMin = setting.openMin;
@@ -33,7 +39,7 @@ export async function computeSlots(
   if (closedDays.includes(String(weekday))) return [];
 
   // eligible staff
-  const links = await db.serviceStaff.findMany({
+  const links = await client.serviceStaff.findMany({
     where: { serviceId },
     include: { staff: true },
   });
@@ -46,15 +52,16 @@ export async function computeSlots(
   if (eligible.length === 0) return [];
 
   // busy windows per staff
-  const appts = await db.appointment.findMany({
+  const appts = await client.appointment.findMany({
     where: { date, staffId: { in: eligible.map((s) => s.id) }, status: { in: OPEN_STATUSES } },
     select: { staffId: true, startMin: true, endMin: true },
   });
 
   const dur = service.durationMin;
-  const today = new Date();
-  const isToday = date === `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-  const cutoff = isToday ? nowMin() + 30 : -1; // 30 min lead time
+  // booking cutoff runs on the SALON's clock, not the server's (Vercel = UTC)
+  const now = salonClock(setting.timeZone);
+  const isToday = date === now.date;
+  const cutoff = isToday ? now.min + 30 : -1; // 30 min lead time
 
   const slots: Slot[] = [];
   for (let t = openMin; t + dur <= closeMin; t += step) {
@@ -80,9 +87,35 @@ export async function isSlotBookable(
   serviceId: string,
   staffId: string,
   date: string,
-  startMin: number
+  startMin: number,
+  client: DbLike = db as PrismaClient
 ): Promise<boolean> {
-  const slots = await computeSlots(serviceId, staffId, date);
+  const slots = await computeSlots(serviceId, staffId, date, client);
   const slot = slots.find((s) => s.min === startMin);
   return !!slot?.available;
+}
+
+/**
+ * First specialist who is actually free at this exact slot — the correct
+ * resolution for "any". Order of preference follows the staff sort order.
+ */
+export async function firstFreeStaff(
+  serviceId: string,
+  date: string,
+  startMin: number,
+  client: DbLike = db as PrismaClient
+): Promise<string | null> {
+  const links = await client.serviceStaff.findMany({
+    where: { serviceId },
+    include: { staff: true },
+  });
+  const weekday = weekdayOf(date);
+  const candidates = links
+    .map((l) => l.staff)
+    .filter((st) => st.active && st.workingDays.split(",").map(Number).includes(weekday))
+    .sort((a, b) => a.sortOrder - b.sortOrder);
+  for (const st of candidates) {
+    if (await isSlotBookable(serviceId, st.id, date, startMin, client)) return st.id;
+  }
+  return null;
 }

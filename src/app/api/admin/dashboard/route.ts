@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { db, dbReady } from "@/lib/db";
 import { ok, requireAdmin } from "@/lib/salonflow/auth";
-import { daysAgoStr, minToLabel, todayStr, weekdayOf, nowMin } from "@/lib/salonflow/time";
+import { salonClock, salonDaysAgo, minToLabel, weekdayOf } from "@/lib/salonflow/time";
 
 /** Row colors for the day grid — kept in sync with the UI palette. */
 const STAFF_COLORS = ["#b76e79", "#7e9680", "#c9a227", "#a98467", "#8d7b9e", "#5f8a8b"];

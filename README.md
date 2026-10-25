@@ -101,9 +101,10 @@ src/components/salonflow/   # storefront + console UI (day grid, POS, reports…
 The demo dataset is fully deterministic — re-running the seed produces the same
 "shop that has been open for eight weeks" (weekday rushes, no-shows, tips,
 retail attach rates, regulars with notes). All demo photography ships inside
-`public/images/`, so the app works offline after install and never hot-links a
-third-party CDN. **Replace the bundled photos with your own** via the Services,
-Team and Settings editors before going live with a real salon.
+`public/images/` (stock photos from free-license providers — Pexels), so the app
+works offline after install and never hot-links a third-party CDN. **Replace the
+bundled photos with your own** via the Services, Team and Settings editors before
+going live with a real salon.
 
 ## License
 

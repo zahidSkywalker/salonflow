@@ -113,3 +113,15 @@ export const DDL: string[] = [
   `CREATE INDEX IF NOT EXISTS "Appointment_staffId_date_idx" ON "Appointment"("staffId", "date")`,
   `CREATE UNIQUE INDEX IF NOT EXISTS "Sale_receiptNo_key" ON "Sale"("receiptNo")`,
 ];
+
+/**
+ * Column additions for databases created before these fields existed.
+ * SQLite ALTER TABLE ADD COLUMN fails if the column already exists — the
+ * caller runs these on EVERY boot inside a try/catch, so duplicates are
+ * silently skipped. This is what lets an existing /tmp database (or a
+ * buyer's local dev.db) gain new columns without a migration CLI.
+ */
+export const MIGRATIONS: string[] = [
+  `ALTER TABLE "Setting" ADD COLUMN "timeZone" TEXT NOT NULL DEFAULT 'America/New_York'`,
+  `ALTER TABLE "Setting" ADD COLUMN "sessionSecret" TEXT NOT NULL DEFAULT ''`,
+];

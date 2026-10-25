@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
-import { ok, bad, requireAdmin, tokenForPin, ADMIN_COOKIE } from "@/lib/salonflow/auth";
+import { ok, bad, requireAdmin, rotateSessionSecret, adminCookieOptions, ADMIN_COOKIE } from "@/lib/salonflow/auth";
+import { isValidZone } from "@/lib/salonflow/time";
 
 export async function GET(req: NextRequest) {
   const denied = await requireAdmin(req);
@@ -12,7 +13,7 @@ export async function GET(req: NextRequest) {
     address: s.address, phone: s.phone, email: s.email,
     currencySymbol: s.currencySymbol, openMin: s.openMin, closeMin: s.closeMin,
     slotStepMin: s.slotStepMin, closedDays: s.closedDays, adminPin: s.adminPin,
-    heroImage: s.heroImage,
+    timeZone: s.timeZone, heroImage: s.heroImage,
     gallery: (() => { try { return JSON.parse(s.galleryJson); } catch { return []; } })(),
   });
 }
@@ -35,19 +36,23 @@ export async function PATCH(req: NextRequest) {
   if (typeof b.closeMin === "number" && b.closeMin > 0 && b.closeMin <= 1440) data.closeMin = Math.round(b.closeMin);
   if (typeof b.slotStepMin === "number" && [5, 10, 15, 20, 30].includes(b.slotStepMin)) data.slotStepMin = b.slotStepMin;
   if (typeof b.closedDays === "string") data.closedDays = b.closedDays.replace(/[^0-6,]/g, "");
+  if (typeof b.timeZone === "string" && b.timeZone.trim()) data.timeZone = b.timeZone.trim().slice(0, 64);
   if (typeof b.heroImage === "string") data.heroImage = b.heroImage;
   if (typeof b.gallery === "string") data.galleryJson = b.gallery;
   if (typeof b.adminPin === "string" && b.adminPin.length >= 4) data.adminPin = b.adminPin;
 
   if (Object.keys(data).length === 0) return bad("Nothing to update");
+  if (typeof data.timeZone === "string" && !isValidZone(data.timeZone)) {
+    return bad("That timezone isn't a valid IANA zone (e.g. America/New_York)");
+  }
 
-  const updated = await db.setting.update({ where: { id: "main" }, data });
+  await db.setting.update({ where: { id: "main" }, data });
   const res = ok({ saved: true });
-  // PIN changed → refresh the admin cookie so the session stays valid
+  // PIN changed → rotate the session secret and re-plant the cookie, so other
+  // sessions (and anyone who learned the old PIN) are signed out everywhere.
   if (data.adminPin) {
-    res.cookies.set(ADMIN_COOKIE, tokenForPin(updated.adminPin), {
-      httpOnly: true, sameSite: "lax", path: "/", maxAge: 60 * 60 * 12,
-    });
+    const secret = await rotateSessionSecret();
+    res.cookies.set(ADMIN_COOKIE, secret, adminCookieOptions());
   }
   return res;
 }

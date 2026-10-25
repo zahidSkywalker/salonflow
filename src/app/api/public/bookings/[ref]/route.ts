@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { db, dbReady } from "@/lib/db";
 import { ok, bad } from "@/lib/salonflow/auth";
+import { salonToday } from "@/lib/salonflow/time";
 
 async function getAppt(ref: string) {
   await dbReady; // first-run bootstrap
@@ -38,9 +39,9 @@ export async function PATCH(
     return bad("This booking can no longer be cancelled online — please call us.");
   }
 
-  const today = new Date();
-  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-  if (appt.date < todayStr) return bad("This appointment is in the past.");
+  // "in the past" is judged on the salon's clock, not the server's UTC
+  const setting = await db.setting.findUnique({ where: { id: "main" } });
+  if (appt.date < salonToday(setting?.timeZone)) return bad("This appointment is in the past.");
 
   const updated = await db.appointment.update({
     where: { ref: appt.ref },

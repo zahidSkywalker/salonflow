@@ -24,7 +24,11 @@ model Setting {
   closeMin       Int      @default(1140) // 19:00
   slotStepMin    Int      @default(15)
   closedDays     String   @default("0") // weekday numbers, 0=Sunday
+  timeZone       String   @default("America/New_York") // salon's local clock (IANA)
   adminPin       String   @default("aurelia2024")
+  // Server-side random session secret. The admin cookie holds this, NOT a
+  // hash of the PIN — so a publicly-known demo PIN can never forge a session.
+  sessionSecret  String   @default("")
   heroImage      String   @default("")
   galleryJson    String   @default("[]")
   updatedAt      DateTime @updatedAt
