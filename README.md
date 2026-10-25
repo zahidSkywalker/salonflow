@@ -36,7 +36,8 @@ SQLite file you own.
 - **Reports** — revenue by day with weekend highlighting, department mix, payment mix,
   busiest services, and a staff payout table (commission owed vs tips already paid),
   CSV export
-- **Settings** — salon identity, opening hours, slot step, currency, admin PIN rotation
+- **Settings** — salon identity, opening hours, slot step, currency, salon timezone
+  (the console runs on the salon's clock, not the server's), admin PIN rotation
 
 ## The demo
 
@@ -50,6 +51,17 @@ serverless instance), the app rebuilds the demo data automatically.
 | Storefront | `/` |
 | Owner console | `/#/admin` |
 | Demo PIN | `aurelia2024` (change it in Settings) |
+
+## Security model
+
+- The admin cookie holds a **server-side random session secret** — never a hash of
+  the PIN. A publicly-known demo PIN therefore cannot forge a session; the only road
+  to the console is the login route.
+- Every login rotates the secret, so changing the PIN signs out every previous session.
+- Login and public booking endpoints are rate-limited (brake on brute force and spam).
+- Product stock and receipt numbers are written inside one transaction — concurrent
+  checkouts can't oversell or double a receipt number, and slot booking re-checks
+  conflicts inside the write transaction.
 
 ## Quickstart
 
