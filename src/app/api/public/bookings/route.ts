@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
   // Check + create inside one transaction: SQLite serializes writes, so two
   // guests racing for the same chair cannot both pass the availability check.
   const appointment = await db.$transaction(async (tx) => {
-    let resolvedStaffId: string;
+    let resolvedStaffId: string | null;
     if (staff) {
       resolvedStaffId = staff.id;
     } else {

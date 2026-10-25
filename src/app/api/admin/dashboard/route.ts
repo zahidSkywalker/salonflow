@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { db, dbReady } from "@/lib/db";
 import { ok, requireAdmin } from "@/lib/salonflow/auth";
-import { salonClock, salonDaysAgo, minToLabel, weekdayOf } from "@/lib/salonflow/time";
+import { salonClock, salonDaysAgo, salonDayStart, salonDayEnd, salonDateOf, minToLabel, weekdayOf } from "@/lib/salonflow/time";
 
 /** Row colors for the day grid — kept in sync with the UI palette. */
 const STAFF_COLORS = ["#b76e79", "#7e9680", "#c9a227", "#a98467", "#8d7b9e", "#5f8a8b"];
@@ -11,9 +11,12 @@ export async function GET(req: NextRequest) {
   if (denied) return denied;
   await dbReady;
 
-  const date = todayStr();
+  // the board runs on the salon's clock — Vercel's UTC would flip "today"
+  // while the evening rush is still on the floor
   const setting = await db.setting.findUnique({ where: { id: "main" } });
-  const nm = nowMin();
+  const clock = salonClock(setting?.timeZone);
+  const date = clock.date;
+  const nm = clock.min;
 
   const [allAppts, daySales, fortnightSales, pendingRaw, lowStockRaw, staffAll, topSvcRaw] =
     await Promise.all([
@@ -27,11 +30,11 @@ export async function GET(req: NextRequest) {
         orderBy: { startMin: "asc" },
       }),
       db.sale.findMany({
-        where: { createdAt: { gte: new Date(`${date}T00:00:00`), lte: new Date(`${date}T23:59:59`) } },
+        where: { createdAt: { gte: salonDayStart(date, setting?.timeZone), lt: salonDayEnd(date, setting?.timeZone) } },
         select: { subtotal: true, discount: true, tip: true, total: true, method: true },
       }),
       db.sale.findMany({
-        where: { createdAt: { gte: new Date(`${daysAgoStr(-13)}T00:00:00`) } },
+        where: { createdAt: { gte: salonDayStart(salonDaysAgo(setting?.timeZone, -13), setting?.timeZone) } },
         select: { subtotal: true, discount: true, createdAt: true },
       }),
       db.appointment.findMany({
@@ -53,7 +56,7 @@ export async function GET(req: NextRequest) {
       db.$queryRaw<{ name: string; c: number; rev: number }[]>`
         SELECT json_extract(s.items, '$[0].name') as name, COUNT(*) as c, SUM(s.subtotal - s.discount) as rev
         FROM Sale s
-        WHERE s.createdAt >= ${new Date(`${daysAgoStr(-6)}T00:00:00`)}
+        WHERE s.createdAt >= ${salonDayStart(salonDaysAgo(setting?.timeZone, -6), setting?.timeZone)}
           AND json_extract(s.items, '$[0].kind') = 'service'
         GROUP BY name ORDER BY rev DESC LIMIT 5
       `,
@@ -94,12 +97,11 @@ export async function GET(req: NextRequest) {
   // 14-day series (net revenue, tips excluded)
   const byDay = new Map<string, number>();
   for (const s of fortnightSales) {
-    const d = new Date(s.createdAt);
-    const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const iso = salonDateOf(s.createdAt, setting?.timeZone);
     byDay.set(iso, (byDay.get(iso) ?? 0) + s.subtotal - s.discount);
   }
   const revenueSeries = Array.from({ length: 14 }, (_, i) => {
-    const d = daysAgoStr(-13 + i);
+    const d = salonDaysAgo(setting?.timeZone, -13 + i);
     return { date: d, revenue: byDay.get(d) ?? 0 };
   });
 

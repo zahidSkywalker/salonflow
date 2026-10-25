@@ -60,42 +60,59 @@ export async function POST(req: NextRequest) {
     if (!appt) return bad("Appointment not found");
   }
 
-  // sequential receipt number — continue from the highest ever issued
-  const lastSale = await db.sale.findFirst({ orderBy: { receiptNo: "desc" }, select: { receiptNo: true } });
-  const lastNum = lastSale ? parseInt(lastSale.receiptNo.replace(/\D/g, ""), 10) || 0 : 0;
-  const receiptNo = `SLN-${String(lastNum + 1).padStart(4, "0")}`;
+  let sale;
+  try {
+    sale = await db.$transaction(async (tx) => {
+      // Sequential receipt number — allocated INSIDE the tx, so two checkouts
+      // racing each other can never pull the same number.
+      const lastSale = await tx.sale.findFirst({ orderBy: { receiptNo: "desc" }, select: { receiptNo: true } });
+      const lastNum = lastSale ? parseInt(lastSale.receiptNo.replace(/\D/g, ""), 10) || 0 : 0;
+      const receiptNo = `SLN-${String(lastNum + 1).padStart(4, "0")}`;
 
-  const sale = await db.$transaction(async (tx) => {
-    // decrement stock
-    for (const it of resolved.filter((r) => r.kind === "product")) {
-      await tx.product.update({ where: { id: it.id }, data: { stock: { decrement: it.qty } } });
-    }
-    const created = await tx.sale.create({
-      data: {
-        receiptNo,
-        customerId: custId,
-        staffId: stId,
-        appointmentId: typeof appointmentId === "string" && appointmentId ? appointmentId : null,
-        items: JSON.stringify(resolved),
-        subtotal,
-        discount: disc,
-        tip: tipCents,
-        total,
-        method: method as string,
-      },
-      include: {
-        customer: { select: { id: true, name: true, phone: true } },
-        staff: { select: { id: true, name: true } },
-      },
-    });
-    if (typeof appointmentId === "string" && appointmentId) {
-      await tx.appointment.update({
-        where: { id: appointmentId },
-        data: { status: "COMPLETED" },
+      // Atomic stock guard — refuses to sell past zero no matter who clicks
+      // first; the pre-check above is only for a friendly early error.
+      for (const it of resolved.filter((r) => r.kind === "product")) {
+        const moved = await tx.product.updateMany({
+          where: { id: it.id, stock: { gte: it.qty } },
+          data: { stock: { decrement: it.qty } },
+        });
+        if (moved.count === 0) {
+          const prod = await tx.product.findUnique({ where: { id: it.id } });
+          throw new Error(`STOCK:${prod?.name ?? it.id}:${prod?.stock ?? 0}`);
+        }
+      }
+
+      const created = await tx.sale.create({
+        data: {
+          receiptNo,
+          customerId: custId,
+          staffId: stId,
+          appointmentId: typeof appointmentId === "string" && appointmentId ? appointmentId : null,
+          items: JSON.stringify(resolved),
+          subtotal,
+          discount: disc,
+          tip: tipCents,
+          total,
+          method: method as string,
+        },
+        include: {
+          customer: { select: { id: true, name: true, phone: true } },
+          staff: { select: { id: true, name: true } },
+        },
       });
-    }
-    return created;
-  });
+      if (typeof appointmentId === "string" && appointmentId) {
+        await tx.appointment.update({
+          where: { id: appointmentId },
+          data: { status: "COMPLETED" },
+        });
+      }
+      return created;
+    });
+  } catch (err) {
+    const m = err instanceof Error && err.message.startsWith("STOCK:") ? err.message.split(":") : null;
+    if (m) return bad(`Not enough stock for ${m[1]} (${m[2]} left)`, 409);
+    throw err;
+  }
 
   return ok({ ...sale, items: parseItems(sale.items) }, 201);
 }

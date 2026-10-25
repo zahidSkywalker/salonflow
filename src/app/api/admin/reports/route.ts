@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { ok, requireAdmin } from "@/lib/salonflow/auth";
-import { daysAgoStr, parseItems } from "@/lib/salonflow/time";
+import { salonDaysAgo, salonDayStart, salonDateOf, parseItems } from "@/lib/salonflow/time";
 
 export async function GET(req: NextRequest) {
   const denied = await requireAdmin(req);
@@ -9,11 +9,13 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url);
   const days = Math.min(180, Math.max(7, Number(searchParams.get("days") ?? 30)));
-  const from = daysAgoStr(-(days - 1));
+  const setting = await db.setting.findUnique({ where: { id: "main" } });
+  const tz = setting?.timeZone;
+  const from = salonDaysAgo(tz, -(days - 1));
 
   const [sales, services, newCustomers, apptAgg] = await Promise.all([
     db.sale.findMany({
-      where: { createdAt: { gte: new Date(`${from}T00:00:00`) } },
+      where: { createdAt: { gte: salonDayStart(from, tz) } },
       include: { staff: { select: { id: true, name: true, title: true, commissionPct: true } } },
       orderBy: { createdAt: "asc" },
     }),
@@ -27,13 +29,12 @@ export async function GET(req: NextRequest) {
   /* revenue by day (net of discounts, tips excluded) */
   const byDay = new Map<string, number>();
   for (const s of sales) {
-    const d = new Date(s.createdAt);
-    const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const iso = salonDateOf(s.createdAt, tz);
     byDay.set(iso, (byDay.get(iso) ?? 0) + s.subtotal - s.discount);
   }
   const revenueByDay: { date: string; revenue: number }[] = [];
   for (let i = days - 1; i >= 0; i--) {
-    const d = daysAgoStr(-i);
+    const d = salonDaysAgo(tz, -i);
     revenueByDay.push({ date: d, revenue: byDay.get(d) ?? 0 });
   }
 

@@ -7,6 +7,7 @@
  * notes a front desk would actually write.
  */
 import type { PrismaClient } from "@prisma/client";
+import { salonDaysAgo, salonClock } from "./time";
 
 /* ── deterministic RNG ─────────────────────────────────────────────────── */
 let s = 987654321;
@@ -26,16 +27,10 @@ function weighted<T>(items: T[], weights: number[]): T {
 /* ── date helpers ──────────────────────────────────────────────────────── */
 const pad = (n: number) => String(n).padStart(2, "0");
 const iso = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-const dayStr = (offset: number) => {
-  const d = new Date();
-  d.setDate(d.getDate() + offset);
-  return iso(d);
-};
 const weekdayOf = (date: string) => new Date(`${date}T12:00:00`).getDay();
-const nowMin = () => {
-  const d = new Date();
-  return d.getHours() * 60 + d.getMinutes();
-};
+// date strings are derived from the SALON's clock (set below), not the
+// server's — a UTC server must not shift the living day mid-evening
+const dayStr = (offset: number, tz: string) => salonDaysAgo(tz, offset);
 
 /* ── reference data ────────────────────────────────────────────────────── */
 // All photography ships inside the repo (public/images) — the product is
@@ -142,25 +137,33 @@ type BusyMap = Map<string, Array<[number, number]>>; // `${staffId}|${date}` →
 let receiptCounter = 1006;
 const receiptNo = () => `SLN-${pad(++receiptCounter).padStart(4, "0")}`;
 
-let refCounter = 4180;
+const REF_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+const usedRefs = new Set<string>();
 const nextRef = () => {
-  refCounter += ri(1, 4);
-  return `SA-${refCounter.toString(36).toUpperCase()}${String.fromCharCode(65 + ri(0, 25))}`;
+  let ref = "";
+  do {
+    ref = "SA-" + Array.from({ length: 5 }, () => REF_CHARS[Math.floor(rnd() * REF_CHARS.length)]).join("");
+  } while (usedRefs.has(ref));
+  usedRefs.add(ref);
+  return ref;
 };
 
 /* ── the seed itself ───────────────────────────────────────────────────── */
 export async function seedDatabase(db: PrismaClient) {
+  // One transaction for the whole seed: a lambda killed mid-seed leaves NO
+  // half-written database behind — the next boot simply seeds again.
+  return db.$transaction(async (tx) => {
   // wipe (children first)
-  await db.sale.deleteMany();
-  await db.appointment.deleteMany();
-  await db.product.deleteMany();
-  await db.serviceStaff.deleteMany();
-  await db.staff.deleteMany();
-  await db.service.deleteMany();
-  await db.customer.deleteMany();
-  await db.setting.deleteMany();
+  await tx.sale.deleteMany();
+  await tx.appointment.deleteMany();
+  await tx.product.deleteMany();
+  await tx.serviceStaff.deleteMany();
+  await tx.staff.deleteMany();
+  await tx.service.deleteMany();
+  await tx.customer.deleteMany();
+  await tx.setting.deleteMany();
 
-  await db.setting.create({
+  const settingRow = await tx.setting.create({
     data: {
       id: "main",
       salonName: "Aurelia Salon & Spa",
@@ -188,11 +191,13 @@ export async function seedDatabase(db: PrismaClient) {
     },
   });
 
+  const tz = settingRow.timeZone || "America/New_York";
+
   /* services */
   const svcRows: Record<string, SvcRow> = {};
   for (let i = 0; i < SERVICES.length; i++) {
     const [name, category, description, price, durationMin, imageUrl, weight] = SERVICES[i];
-    const row = await db.service.create({
+    const row = await tx.service.create({
       data: { name, category, description, price, durationMin, imageUrl, sortOrder: i },
     });
     svcRows[name] = { id: row.id, name, price, durationMin, weight };
@@ -203,7 +208,7 @@ export async function seedDatabase(db: PrismaClient) {
   const staffRows: StaffRow[] = [];
   for (let i = 0; i < STAFF.length; i++) {
     const [name, title, bio, commissionPct, imageUrl, svcList, days, start, end] = STAFF[i];
-    const row = await db.staff.create({
+    const row = await tx.staff.create({
       data: {
         name, title, bio, commissionPct, imageUrl,
         workingDays: days, shiftStartMin: start, shiftEndMin: end, sortOrder: i,
@@ -211,14 +216,14 @@ export async function seedDatabase(db: PrismaClient) {
     });
     staffRows.push({ id: row.id, name, serviceNames: svcList, days: new Set(days.split(",").map(Number)), start, end });
     for (const sn of svcList) {
-      await db.serviceStaff.create({ data: { staffId: row.id, serviceId: svcRows[sn].id } });
+      await tx.serviceStaff.create({ data: { staffId: row.id, serviceId: svcRows[sn].id } });
     }
   }
 
   /* products */
   const productIds: Record<string, string> = {};
   for (const [name, brand, price, stock, lowStockAt] of PRODUCTS) {
-    const row = await db.product.create({ data: { name, brand, price, stock, lowStockAt } });
+    const row = await tx.product.create({ data: { name, brand, price, stock, lowStockAt } });
     productIds[name] = row.id;
   }
 
@@ -227,7 +232,7 @@ export async function seedDatabase(db: PrismaClient) {
   for (const [name, phone, notes] of CUSTOMERS) {
     const handle = name.toLowerCase().replace(/[^a-z ]/g, "").split(" ").filter(Boolean);
     const email = `${handle[0]}.${handle[1] ?? "guest"}${ri(10, 99)}@${["gmail.com", "outlook.com", "icloud.com", "yahoo.com"][ri(0, 3)]}`;
-    const row = await db.customer.create({ data: { name, phone, notes, email } });
+    const row = await tx.customer.create({ data: { name, phone, notes, email } });
     custIds.push(row.id);
   }
 
@@ -338,7 +343,7 @@ export async function seedDatabase(db: PrismaClient) {
 
   /* ── eight weeks of history ─────────────────────────────────────────── */
   for (let off = -56; off <= -1; off++) {
-    const date = dayStr(off);
+    const date = dayStr(off, tz);
     const wd = weekdayOf(date);
     const rush = wd === 5 || wd === 6 ? 1.9 : wd === 1 ? 0.7 : wd === 0 ? 0.55 : 1; // Fri/Sat rush, quiet Mon & Sun
     const n = Math.round((6 + ri(0, 5)) * rush);
@@ -362,8 +367,8 @@ export async function seedDatabase(db: PrismaClient) {
   }
 
   /* ── today: a living day — statuses relative to the current minute ──── */
-  const today = dayStr(0);
-  const nm = nowMin();
+  const today = dayStr(0, tz);
+  const nm = salonClock(tz).min;
   const todayAppts: ApptInsert[] = [];
   for (let k = 0; k < 9; k++) {
     const a = planAppointment(today, "CONFIRMED");
@@ -387,7 +392,7 @@ export async function seedDatabase(db: PrismaClient) {
 
   /* ── next seven days of bookings ────────────────────────────────────── */
   for (let off = 1; off <= 7; off++) {
-    const date = dayStr(off);
+    const date = dayStr(off, tz);
     const n = ri(3, 7);
     for (let k = 0; k < n; k++) {
       const a = planAppointment(date, chance(0.3) ? "PENDING" : "CONFIRMED", "ONLINE");
@@ -396,7 +401,7 @@ export async function seedDatabase(db: PrismaClient) {
   }
 
   /* ── write everything ───────────────────────────────────────────────── */
-  await db.$transaction(async (tx) => {
+  {
     const idByRef: Record<string, string> = {};
     for (const a of appts) {
       const row = await tx.appointment.create({ data: a });
@@ -406,7 +411,7 @@ export async function seedDatabase(db: PrismaClient) {
       const { apptRef, ...data } = sl;
       await tx.sale.create({ data: { ...data, appointmentId: apptRef ? idByRef[apptRef] ?? null : null } });
     }
-  });
+  }
 
   return {
     services: SERVICES.length,
@@ -415,4 +420,5 @@ export async function seedDatabase(db: PrismaClient) {
     appointments: appts.length,
     sales: sales.length,
   };
+  }, { timeout: 60_000, maxWait: 10_000 });
 }

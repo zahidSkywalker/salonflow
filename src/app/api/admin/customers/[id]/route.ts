@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { ok, bad, requireAdmin } from "@/lib/salonflow/auth";
-import { todayStr, parseItems } from "@/lib/salonflow/time";
+import { salonToday, parseItems } from "@/lib/salonflow/time";
 
 /** Full guest profile: stats + booking + purchase history. */
 export async function GET(
@@ -15,7 +15,8 @@ export async function GET(
   const customer = await db.customer.findUnique({ where: { id } });
   if (!customer) return bad("Customer not found", 404);
 
-  const today = todayStr();
+  const setting = await db.setting.findUnique({ where: { id: "main" } });
+  const today = salonToday(setting?.timeZone);
   const [appointments, sales] = await Promise.all([
     db.appointment.findMany({
       where: { customerId: id },

@@ -1,8 +1,8 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { ok, bad, requireAdmin } from "@/lib/salonflow/auth";
-import { isSlotBookable } from "@/lib/salonflow/slotengine";
-import { todayStr } from "@/lib/salonflow/time";
+import { firstFreeStaff, isSlotBookable } from "@/lib/salonflow/slotengine";
+import { salonToday } from "@/lib/salonflow/time";
 
 export async function GET(req: NextRequest) {
   const denied = await requireAdmin(req);
@@ -16,7 +16,10 @@ export async function GET(req: NextRequest) {
 
   const where: Record<string, unknown> = {};
   if (scope === "day" && date) where.date = date;
-  if (scope === "upcoming") where.date = { gte: todayStr() };
+  if (scope === "upcoming") {
+    const setting = await db.setting.findUnique({ where: { id: "main" } });
+    where.date = { gte: salonToday(setting?.timeZone) };
+  }
   if (status) where.status = status;
   if (staffId) where.staffId = staffId;
 
@@ -53,26 +56,14 @@ export async function POST(req: NextRequest) {
   if (!service) return bad("Service not found");
 
   // "any" → first specialist who is actually free at that time
-  let resolvedStaffId: string;
+  let wantStaffId: string | null;
   if (staffId === "any") {
-    const links = await db.serviceStaff.findMany({
-      where: { serviceId },
-      include: { staff: true },
-    });
-    const weekday = new Date(`${date}T12:00:00`).getDay();
-    const candidates = links
-      .map((l) => l.staff)
-      .filter((st) => st.active && st.workingDays.split(",").map(Number).includes(weekday));
-    const freeStaff: { id: string }[] = [];
-    for (const st of candidates) {
-      if (await isSlotBookable(serviceId, st.id, date, startMin)) freeStaff.push(st);
-    }
-    if (freeStaff.length === 0) return bad("Nobody is free at that time — try another slot", 409);
-    resolvedStaffId = freeStaff[0].id;
+    wantStaffId = await firstFreeStaff(serviceId, date, startMin);
+    if (!wantStaffId) return bad("Nobody is free at that time — try another slot", 409);
   } else {
     const staff = await db.staff.findUnique({ where: { id: staffId } });
     if (!staff) return bad("Staff not found");
-    resolvedStaffId = staff.id;
+    wantStaffId = staff.id;
   }
 
   // resolve or create customer
@@ -88,32 +79,38 @@ export async function POST(req: NextRequest) {
   }
   if (!custId) return bad("Pick an existing customer or add name + phone");
 
-  const free = await isSlotBookable(serviceId, resolvedStaffId, date, startMin);
-  if (!free) return bad("That slot conflicts with another booking or the shift", 409);
+  const appt = await db.$transaction(async (tx) => {
+    // SQLite serializes writes — checking inside the tx closes the
+    // double-booking window between "looks free" and "created".
+    const free = await isSlotBookable(serviceId, wantStaffId, date, startMin, tx);
+    if (!free) return null;
 
-  let ref = "SA-" + Math.random().toString(36).slice(2, 7).toUpperCase();
-  while (await db.appointment.findUnique({ where: { ref } })) {
-    ref = "SA-" + Math.random().toString(36).slice(2, 7).toUpperCase();
-  }
+    const REF_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    const makeRef = () =>
+      "SA-" + Array.from({ length: 5 }, () => REF_CHARS[Math.floor(Math.random() * REF_CHARS.length)]).join("");
+    let ref = makeRef();
+    while (await tx.appointment.findUnique({ where: { ref } })) ref = makeRef();
 
-  const appt = await db.appointment.create({
-    data: {
-      ref,
-      customerId: custId,
-      staffId: resolvedStaffId,
-      serviceId,
-      date,
-      startMin,
-      endMin: startMin + service.durationMin,
-      status: "CONFIRMED",
-      source: source === "WALK_IN" ? "WALK_IN" : "ADMIN",
-      notes: typeof notes === "string" ? notes.slice(0, 500) : null,
-    },
-    include: {
-      customer: { select: { id: true, name: true, phone: true } },
-      staff: { select: { id: true, name: true } },
-      service: { select: { id: true, name: true, price: true, durationMin: true, category: true } },
-    },
+    return tx.appointment.create({
+      data: {
+        ref,
+        customerId: custId,
+        staffId: wantStaffId,
+        serviceId,
+        date,
+        startMin,
+        endMin: startMin + service.durationMin,
+        status: "CONFIRMED",
+        source: source === "WALK_IN" ? "WALK_IN" : "ADMIN",
+        notes: typeof notes === "string" ? notes.slice(0, 500) : null,
+      },
+      include: {
+        customer: { select: { id: true, name: true, phone: true } },
+        staff: { select: { id: true, name: true } },
+        service: { select: { id: true, name: true, price: true, durationMin: true, category: true } },
+      },
+    });
   });
+  if (!appt) return bad("That slot conflicts with another booking or the shift", 409);
   return ok(appt, 201);
 }

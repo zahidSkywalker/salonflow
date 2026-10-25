@@ -103,6 +103,18 @@ export function salonDayEnd(date: string, timeZone: string | null | undefined): 
   return new Date(start.getTime() + 24 * 60 * 60_000);
 }
 
+/** Salon-local "YYYY-MM-DD" for any instant (sale timestamps, series keys). */
+export function salonDateOf(instant: Date, timeZone: string | null | undefined): string {
+  const tz = timeZone && isValidZone(timeZone) ? timeZone : "America/New_York";
+  try {
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit",
+    }).format(instant);
+  } catch {
+    return `${instant.getFullYear()}-${String(instant.getMonth() + 1).padStart(2, "0")}-${String(instant.getDate()).padStart(2, "0")}`;
+  }
+}
+
 /** do [aStart,aEnd) and [bStart,bEnd) overlap? */
 export function overlaps(aStart: number, aEnd: number, bStart: number, bEnd: number): boolean {
   return aStart < bEnd && bStart < aEnd;
