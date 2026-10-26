@@ -48,6 +48,8 @@ export async function DELETE(
   const denied = await requireAdmin(req);
   if (denied) return denied;
   const { id } = await params;
+  const existing = await db.service.findUnique({ where: { id } });
+  if (!existing) return bad("Service not found", 404);
   const inUse = await db.appointment.count({ where: { serviceId: id } });
   if (inUse > 0) {
     // soft-delete: keep history intact

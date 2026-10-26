@@ -38,18 +38,39 @@ const BLOCK_STYLES: Record<string, string> = {
   CANCELLED: "bg-transparent text-[#a8998a] border-[#d8cbbd] line-through",
 };
 
-export function useNowMin(intervalMs = 30_000): number {
-  const [now, setNow] = useState<number>(() => {
+/** Minutes since midnight right now — in an IANA zone when given, else the viewer's clock. */
+export function salonNowMin(timeZone?: string | null): number {
+  if (!timeZone) {
     const d = new Date();
     return d.getHours() * 60 + d.getMinutes();
-  });
+  }
+  try {
+    const parts = Object.fromEntries(
+      new Intl.DateTimeFormat("en-CA", {
+        timeZone, year: "numeric", month: "2-digit", day: "2-digit",
+        hour: "2-digit", minute: "2-digit", hour12: false,
+      }).formatToParts(new Date()).map((p) => [p.type, p.value])
+    );
+    const hour = Number(parts.hour) % 24;
+    return hour * 60 + Number(parts.minute);
+  } catch {
+    const d = new Date();
+    return d.getHours() * 60 + d.getMinutes();
+  }
+}
+
+/**
+ * Ticking "now" in minutes. Pass the salon's IANA timezone so the now-line
+ * tracks the salon's wall clock — a viewer in Dhaka demoing a New York salon
+ * would otherwise see the line twelve hours out of place.
+ */
+export function useNowMin(intervalMs = 30_000, timeZone?: string | null): number {
+  const [now, setNow] = useState<number>(() => salonNowMin(timeZone));
   useEffect(() => {
-    const t = setInterval(() => {
-      const d = new Date();
-      setNow(d.getHours() * 60 + d.getMinutes());
-    }, intervalMs);
+    setNow(salonNowMin(timeZone));
+    const t = setInterval(() => setNow(salonNowMin(timeZone)), intervalMs);
     return () => clearInterval(t);
-  }, [intervalMs]);
+  }, [intervalMs, timeZone]);
   return now;
 }
 

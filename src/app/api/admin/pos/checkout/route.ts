@@ -64,9 +64,13 @@ export async function POST(req: NextRequest) {
   try {
     sale = await db.$transaction(async (tx) => {
       // Sequential receipt number — allocated INSIDE the tx, so two checkouts
-      // racing each other can never pull the same number.
-      const lastSale = await tx.sale.findFirst({ orderBy: { receiptNo: "desc" }, select: { receiptNo: true } });
-      const lastNum = lastSale ? parseInt(lastSale.receiptNo.replace(/\D/g, ""), 10) || 0 : 0;
+      // racing each other can never pull the same number. Ordered by length
+      // first so SLN-10000 ranks above SLN-9999 (plain string sort wouldn't).
+      const lastRows = await tx.$queryRaw<{ receiptNo: string }[]>`
+        SELECT "receiptNo" FROM "Sale"
+        ORDER BY length("receiptNo") DESC, "receiptNo" DESC
+        LIMIT 1`;
+      const lastNum = lastRows[0] ? parseInt(lastRows[0].receiptNo.replace(/\D/g, ""), 10) || 0 : 0;
       const receiptNo = `SLN-${String(lastNum + 1).padStart(4, "0")}`;
 
       // Atomic stock guard — refuses to sell past zero no matter who clicks

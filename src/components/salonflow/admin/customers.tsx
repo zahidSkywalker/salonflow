@@ -36,23 +36,6 @@ interface ProfileData {
   }[];
 }
 
-interface ProfileData {
-  customer: Cust;
-  stats: {
-    visits: number; upcoming: number; noShows: number; cancelled: number;
-    totalSpent: number; lastVisit: string | null;
-    favouriteStaff: string | null; favouriteService: string | null;
-  };
-  appointments: {
-    id: string; ref: string; date: string; startMin: number; endMin: number; status: string;
-    staff: { name: string }; service: { name: string; price: number; category: string };
-  }[];
-  sales: {
-    receiptNo: string; total: number; tip: number; method: string; createdAt: string;
-    items: { kind: string; name: string; price: number; qty: number }[];
-  }[];
-}
-
 const emptyForm = { name: "", phone: "", email: "", notes: "" };
 
 export default function Customers({ currencySymbol }: { currencySymbol: string }) {

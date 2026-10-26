@@ -28,7 +28,8 @@ const GROUPS: { label: string; items: { key: string; label: string }[] }[] = [
     label: "Manage",
     items: [
       { key: "customers", label: "Clients" },
-      { key: "services", label: "Services & retail" },
+      { key: "services", label: "Services" },
+      { key: "retail", label: "Retail & stock" },
       { key: "staff", label: "Team" },
     ],
   },
@@ -145,7 +146,7 @@ export default function AdminApp() {
         >
           Lock the console
         </button>
-        <p className="text-[10px] text-sidebar-foreground/30 px-3.5 pt-1.5">SalonFlow · v1.5</p>
+        <p className="text-[10px] text-sidebar-foreground/30 px-3.5 pt-1.5">SalonFlow · v1.7</p>
       </div>
     </nav>
   );
@@ -203,6 +204,7 @@ export default function AdminApp() {
           {view === "pos" && <POS {...shared} />}
           {view === "customers" && <Customers {...shared} />}
           {view === "services" && <ServicesAdmin {...shared} />}
+          {view === "retail" && <ServicesAdmin {...shared} initialTab="retail" />}
           {view === "staff" && <StaffAdmin {...shared} />}
           {view === "reports" && <Reports {...shared} />}
           {view === "settings" && <SettingsAdmin />}

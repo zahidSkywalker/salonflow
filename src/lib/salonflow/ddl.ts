@@ -18,6 +18,8 @@ export const DDL: string[] = [
     "closeMin" INTEGER NOT NULL DEFAULT 1140,
     "slotStepMin" INTEGER NOT NULL DEFAULT 15,
     "closedDays" TEXT NOT NULL DEFAULT '0',
+    "timeZone" TEXT NOT NULL DEFAULT 'America/New_York',
+    "sessionSecret" TEXT NOT NULL DEFAULT '',
     "adminPin" TEXT NOT NULL DEFAULT 'aurelia2024',
     "heroImage" TEXT NOT NULL DEFAULT '',
     "galleryJson" TEXT NOT NULL DEFAULT '[]',

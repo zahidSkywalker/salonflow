@@ -48,7 +48,7 @@ export default function POS({ currencySymbol }: { currencySymbol: string }) {
   const [method, setMethod] = useState("CASH");
   const [busy, setBusy] = useState(false);
   const [receipt, setReceipt] = useState<Receipt | null>(null);
-  const [salonInfo, setSalonInfo] = useState<{ name: string; address: string; phone: string } | null>(null);
+  const [salonInfo, setSalonInfo] = useState<{ name: string; address: string; phone: string; timeZone?: string } | null>(null);
 
   useQuery({
     queryKey: ["admin-settings-receipt"],
@@ -56,7 +56,7 @@ export default function POS({ currencySymbol }: { currencySymbol: string }) {
       const res = await fetch("/api/admin/settings");
       if (!res.ok) return null;
       const s = await res.json();
-      setSalonInfo({ name: s.salonName ?? "Aurelia", address: s.address ?? "", phone: s.phone ?? "" });
+      setSalonInfo({ name: s.salonName ?? "Aurelia", address: s.address ?? "", phone: s.phone ?? "", timeZone: s.timeZone });
       return s;
     },
     staleTime: 5 * 60_000,
@@ -365,7 +365,7 @@ export default function POS({ currencySymbol }: { currencySymbol: string }) {
                 <div className="border-t border-dashed border-[#c9b8a5]" />
                 <div className="flex justify-between text-muted-foreground">
                   <span>{receipt.receiptNo}</span>
-                  <span>{new Date(receipt.createdAt).toLocaleString(undefined, { dateStyle: "short", timeStyle: "short" })}</span>
+                  <span>{new Intl.DateTimeFormat(undefined, { dateStyle: "short", timeStyle: "short", timeZone: salonInfo?.timeZone || undefined }).format(new Date(receipt.createdAt))}</span>
                 </div>
                 <div className="border-t border-dashed border-[#c9b8a5]" />
                 {receipt.items.map((it, i) => (

@@ -359,7 +359,8 @@ export default function Storefront() {
               <div className="mt-5 space-y-2.5 text-sm">
                 {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map((day, idx) => {
                   const closed = s ? s.closedDays.split(",").filter(Boolean).includes(String(idx)) : false;
-                  const isToday = (new Date().getDay() + 7) % 7 === idx;
+                  // list starts on Monday; getDay() starts on Sunday → shift by one
+                  const isToday = (new Date().getDay() + 6) % 7 === idx;
                   return (
                     <div key={day} className={cn(
                       "flex justify-between rounded-lg px-3 py-2",

@@ -16,6 +16,7 @@ interface SettingsData {
   salonName: string; tagline: string; about: string; address: string; phone: string;
   email: string; currencySymbol: string; openMin: number; closeMin: number;
   slotStepMin: number; closedDays: string; adminPin: string; heroImage: string;
+  timeZone: string;
 }
 
 const toTime = (min: number) => `${String(Math.floor(min / 60)).padStart(2, "0")}:${String(min % 60).padStart(2, "0")}`;
@@ -159,6 +160,19 @@ export default function SettingsAdmin() {
             >
               {[5, 10, 15, 20, 30].map((v) => <option key={v} value={v}>{v} minutes</option>)}
             </select>
+          </div>
+          <div className="space-y-1.5 sm:col-span-3">
+            <Label>Salon timezone (IANA)</Label>
+            <Input
+              value={form.timeZone}
+              onChange={(e) => set({ timeZone: e.target.value })}
+              list="tz-list"
+              placeholder="America/New_York"
+            />
+            <datalist id="tz-list">
+              {["America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles", "Europe/London", "Europe/Paris", "Asia/Dubai", "Asia/Dhaka", "Asia/Singapore", "Australia/Sydney"].map((z) => <option key={z} value={z} />)}
+            </datalist>
+            <p className="text-[11px] text-muted-foreground">The operations board, booking cutoffs and reports all run on this clock.</p>
           </div>
           <div className="space-y-1.5 sm:col-span-3">
             <Label>Closed days</Label>

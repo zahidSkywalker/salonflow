@@ -40,7 +40,6 @@ export default function Appointments({ currencySymbol }: { currencySymbol: strin
   const [q, setQ] = useState("");
   const [mode, setMode] = useState<"timeline" | "list">("timeline");
   const [prefill, setPrefill] = useState<{ staffId: string; startMin: number } | null>(null);
-  const nowMin = useNowMin();
 
   const { data, isLoading } = useQuery<{ appointments: Appt[] }>({
     queryKey: ["admin-appts", date, status, scope],
@@ -60,10 +59,13 @@ export default function Appointments({ currencySymbol }: { currencySymbol: strin
   const { data: staffData } = useQuery<{ staff: (Stf & { workingDays: string; shiftStartMin: number; shiftEndMin: number; imageUrl: string })[] }>({
     queryKey: ["admin-staff"], queryFn: async () => (await fetch("/api/admin/staff")).json(),
   });
-  const { data: settingData } = useQuery<{ openMin: number; closeMin: number }>({
+  const { data: settingData } = useQuery<{ openMin: number; closeMin: number; timeZone: string }>({
     queryKey: ["admin-settings-hours"], queryFn: async () => (await fetch("/api/admin/settings")).json(),
     staleTime: 5 * 60_000,
   });
+  // the now-line runs on the salon's clock, not the viewer's — a Dhaka viewer
+  // demoing a New York salon must still see the line where the salon sees it
+  const nowMin = useNowMin(30_000, settingData?.timeZone);
 
   const gridStaff: GridStaff[] = (staffData?.staff ?? [])
     .filter((s) => s.active)

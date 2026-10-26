@@ -46,6 +46,8 @@ export async function DELETE(
   const denied = await requireAdmin(req);
   if (denied) return denied;
   const { id } = await params;
+  const existing = await db.staff.findUnique({ where: { id } });
+  if (!existing) return bad("Staff member not found", 404);
   const inUse = await db.appointment.count({ where: { staffId: id } });
   if (inUse > 0) {
     await db.staff.update({ where: { id }, data: { active: false } });

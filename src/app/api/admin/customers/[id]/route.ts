@@ -92,6 +92,8 @@ export async function DELETE(
   const denied = await requireAdmin(req);
   if (denied) return denied;
   const { id } = await params;
+  const existing = await db.customer.findUnique({ where: { id } });
+  if (!existing) return bad("Customer not found", 404);
   const hasHistory = (await db.appointment.count({ where: { customerId: id } })) > 0 ||
     (await db.sale.count({ where: { customerId: id } })) > 0;
   if (hasHistory) return bad("Customer has booking or purchase history and cannot be deleted", 409);

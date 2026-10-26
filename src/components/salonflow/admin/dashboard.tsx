@@ -47,12 +47,14 @@ interface DashData {
   lowStock: { id: string; name: string; brand: string; stock: number; lowStockAt: number }[];
 }
 
-type ViewKey = "dashboard" | "appointments" | "pos" | "customers" | "services" | "staff" | "reports" | "settings";
+type ViewKey = "dashboard" | "appointments" | "pos" | "customers" | "services" | "retail" | "staff" | "reports" | "settings";
 
 export default function Dashboard({ onNavigate }: { currencySymbol: string; onNavigate: (v: ViewKey) => void }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const nowMin = useNowMin();
+  // local ticking clock — only used for the first paint, before the server
+  // payload arrives with the SALON's clock (see below)
+  const tickNow = useNowMin(30_000);
   const [confirming, setConfirming] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery<DashData>({
@@ -64,6 +66,11 @@ export default function Dashboard({ onNavigate }: { currencySymbol: string; onNa
     },
     refetchInterval: 60_000,
   });
+
+  // "Right now" runs on the salon's clock — the server computes nowMin with
+  // Setting.timeZone, so a demo viewed from another hemisphere still shows a
+  // truthful board. The local tick only bridges the initial load.
+  const nowMin = data?.nowMin ?? tickNow;
 
   const confirm = async (id: string) => {
     setConfirming(id);
@@ -270,7 +277,7 @@ export default function Dashboard({ onNavigate }: { currencySymbol: string; onNa
                       </span>
                     </div>
                   ))}
-                  <Button size="sm" variant="ghost" className="h-7 text-xs mt-1 px-2" onClick={() => onNavigate("services")}>
+                  <Button size="sm" variant="ghost" className="h-7 text-xs mt-1 px-2" onClick={() => onNavigate("retail")}>
                     <Package className="w-3.5 h-3.5 mr-1" />Manage retail
                   </Button>
                 </div>
@@ -382,7 +389,7 @@ function RevenueBars({ data, cs }: { data: { date: string; revenue: number }[]; 
           <div key={d.date} className="flex-1 min-w-0 flex flex-col group">
             <div className="flex-1 flex items-end relative" title={`${d.date} · ${money(d.revenue, cs)}`}>
               <span className="absolute -top-4 left-1/2 -translate-x-1/2 text-[10px] font-mono tabular-nums text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                {cs}{Math.round(d.revenue / 100)}
+                {money(d.revenue, cs)}
               </span>
               <div
                 className={cn(
