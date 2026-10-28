@@ -57,3 +57,7 @@ server.log
 /db/*.db
 /db/*.db-journal
 /db/*.db-journal
+
+# local dev database
+prisma/dev.db
+prisma/dev.db-journal

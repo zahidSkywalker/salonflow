@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { money, minToLabel, initials } from "../shared";
 import BookingWizard, { WizService, WizStaff } from "./booking-wizard";
 import BookingLookup from "./booking-lookup";
+import PublicAria from "./aria-public";
 import {
   Sparkles, Star, Clock, MapPin, Phone, Mail, Menu, CalendarCheck,
   Search, ChevronDown, Scissors, Heart, Gem,
@@ -21,6 +22,7 @@ interface SiteData {
     phone: string; email: string; currencySymbol: string;
     openMin: number; closeMin: number; closedDays: string;
     heroImage: string; gallery: { url: string; caption: string }[];
+    timeZone?: string | null;
   };
   services: WizService[];
   staff: WizStaff[];
@@ -457,6 +459,23 @@ export default function Storefront() {
         preselectedServiceId={preselect}
       />
       <BookingLookup open={lookupOpen} onOpenChange={setLookupOpen} currencySymbol={s?.currencySymbol ?? "$"} />
+      <PublicAria
+        services={services}
+        staff={staff}
+        settings={
+          s
+            ? {
+                salonName: s.salonName,
+                openMin: s.openMin,
+                closeMin: s.closeMin,
+                closedDays: s.closedDays,
+                currencySymbol: s.currencySymbol,
+                timeZone: s.timeZone ?? null,
+              }
+            : null
+        }
+        onOpenLookup={() => setLookupOpen(true)}
+      />
     </div>
   );
 }

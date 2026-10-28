@@ -38,6 +38,7 @@ export async function GET() {
       closedDays: setting.closedDays,
       heroImage: setting.heroImage,
       gallery,
+      timeZone: setting.timeZone, // salon clock — lets Aria reason about "today" client-side
     },
     services: services.map((s) => ({
       id: s.id, name: s.name, category: s.category, description: s.description,

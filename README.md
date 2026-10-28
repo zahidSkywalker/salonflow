@@ -38,11 +38,17 @@ SQLite file you own.
   CSV export
 - **Settings** — salon identity, opening hours, slot step, currency, salon timezone
   (the console runs on the salon's clock, not the server's), admin PIN rotation
-- **Aria, the built-in salon brain** — an AI chat panel in the corner of the console
-  that answers real questions from live data: *“Who's free at 3pm?”*, *“How did we do
-  this week?”*, *“Any low stock?”*, *“Find Maya”*, *“Who earned the most?”*. Aria is
-  100% self-contained — a hand-written language engine that reads the database
-  directly. **No external AI service, no API keys, no per-message cost, works offline.**
+- **Aria, the built-in salon brain** — an AI assistant on **both sides** of the app.
+  In the owner console it answers real questions from live data: *"Who's free at 3pm?"*,
+  *"How did we do this week?"*, *"Any low stock?"*, *"Find Maya"*, *"Who earned the most?"*.
+  On the public storefront visitors can ask Aria for prices, hours and openings — and
+  **book a real appointment entirely by chat** (service → specialist → live slot check →
+  name & phone → confirmed booking with a reference code). Aria is 100% self-contained:
+  a hand-written language engine reading the database, plus a ~22M-parameter neural
+  language model **bundled inside the app** (served from its own files, executed in the
+  visitor's browser) that catches typos, slang and phrasings the rules can't.
+  Follow-up memory included: *"who's free at 3pm?"* → *"what about sunday?"*.
+  **No external AI service, no API keys, no per-message cost, works offline.**
 - **Your own photos, from your own device** — the hero shot, gallery, service photos
   and team portraits all accept uploads straight from the phone's gallery or camera.
   Images are compressed in the browser and stored inside the app's own database —
