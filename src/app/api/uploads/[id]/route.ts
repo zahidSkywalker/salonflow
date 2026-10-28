@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { db, dbReady } from "@/lib/db";
 import { ok, bad, requireAdmin } from "@/lib/salonflow/auth";
 
 /**
@@ -11,6 +11,7 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  await dbReady; // cold lambda: make sure the schema exists before querying
   const { id } = await params;
   if (!/^[a-z0-9]{10,40}$/i.test(id)) return bad("Invalid image id", 400);
 
