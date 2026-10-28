@@ -9,14 +9,16 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SectionTitle } from "../shared";
+import ImagePicker from "./image-picker";
 import { useToast } from "@/hooks/use-toast";
-import { Save, Store, Clock3, KeyRound } from "lucide-react";
+import { Save, Store, Clock3, KeyRound, Images, Plus, Trash2 } from "lucide-react";
 
 interface SettingsData {
   salonName: string; tagline: string; about: string; address: string; phone: string;
   email: string; currencySymbol: string; openMin: number; closeMin: number;
   slotStepMin: number; closedDays: string; adminPin: string; heroImage: string;
   timeZone: string;
+  gallery: { url: string; caption: string }[];
 }
 
 const toTime = (min: number) => `${String(Math.floor(min / 60)).padStart(2, "0")}:${String(min % 60).padStart(2, "0")}`;
@@ -70,7 +72,11 @@ export default function SettingsAdmin() {
       const res = await fetch("/api/admin/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, adminPin: newPin.length >= 4 ? newPin : undefined }),
+        body: JSON.stringify({
+          ...form,
+          gallery: JSON.stringify(form.gallery.filter((g) => g.url)),
+          adminPin: newPin.length >= 4 ? newPin : undefined,
+        }),
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error ?? "Save failed");
@@ -132,8 +138,13 @@ export default function SettingsAdmin() {
             <Input value={form.currencySymbol} onChange={(e) => set({ currencySymbol: e.target.value })} maxLength={4} className="w-24" />
           </div>
           <div className="space-y-1.5 sm:col-span-2">
-            <Label>Hero image URL</Label>
-            <Input value={form.heroImage} onChange={(e) => set({ heroImage: e.target.value })} />
+            <ImagePicker
+              label="Hero image"
+              shape="wide"
+              value={form.heroImage}
+              onChange={(url) => set({ heroImage: url })}
+              hint="The big photo behind the storefront — straight from your phone or camera roll, stored in the app's own database."
+            />
           </div>
         </CardContent>
       </Card>
@@ -194,6 +205,55 @@ export default function SettingsAdmin() {
             </div>
             <p className="text-[11px] text-muted-foreground">Highlighted days are closed for booking.</p>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="font-display text-lg flex items-center gap-2"><Images className="w-4 h-4 text-primary" />Gallery</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            The photo strip on your storefront. Upload your own — each one is compressed in the browser and kept inside this install.
+          </p>
+          <div className="space-y-3">
+            {form.gallery.map((g, i) => (
+              <div key={i} className="flex flex-col sm:flex-row gap-3 items-start sm:items-end">
+                <ImagePicker
+                  shape="square"
+                  className="sm:w-72"
+                  value={g.url}
+                  onChange={(url) => set({ gallery: form.gallery.map((x, j) => (j === i ? { ...x, url } : x)) })}
+                />
+                <div className="flex-1 w-full space-y-1.5">
+                  <Label>Caption</Label>
+                  <Input
+                    value={g.caption}
+                    onChange={(e) => set({ gallery: form.gallery.map((x, j) => (j === i ? { ...x, caption: e.target.value } : x)) })}
+                    placeholder="The styling floor"
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="text-destructive hover:text-destructive shrink-0"
+                  title="Remove this photo"
+                  onClick={() => set({ gallery: form.gallery.filter((_, j) => j !== i) })}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => set({ gallery: [...form.gallery, { url: "", caption: "" }] })}
+          >
+            <Plus className="w-3.5 h-3.5 mr-1.5" />Add gallery photo
+          </Button>
         </CardContent>
       </Card>
 

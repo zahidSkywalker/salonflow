@@ -38,6 +38,15 @@ SQLite file you own.
   CSV export
 - **Settings** — salon identity, opening hours, slot step, currency, salon timezone
   (the console runs on the salon's clock, not the server's), admin PIN rotation
+- **Aria, the built-in salon brain** — an AI chat panel in the corner of the console
+  that answers real questions from live data: *“Who's free at 3pm?”*, *“How did we do
+  this week?”*, *“Any low stock?”*, *“Find Maya”*, *“Who earned the most?”*. Aria is
+  100% self-contained — a hand-written language engine that reads the database
+  directly. **No external AI service, no API keys, no per-message cost, works offline.**
+- **Your own photos, from your own device** — the hero shot, gallery, service photos
+  and team portraits all accept uploads straight from the phone's gallery or camera.
+  Images are compressed in the browser and stored inside the app's own database —
+  no third-party storage service, nothing leaves the install.
 
 ## The demo
 

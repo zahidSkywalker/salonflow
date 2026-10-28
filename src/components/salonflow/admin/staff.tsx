@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { money, initials, SectionTitle, WEEKDAYS } from "../shared";
+import ImagePicker from "./image-picker";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { UserPlus, Pencil, Percent, Clock } from "lucide-react";
@@ -190,8 +191,13 @@ export default function StaffAdmin({ currencySymbol }: { currencySymbol: string 
               <Textarea value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} className="min-h-16" />
             </div>
             <div className="space-y-1.5">
-              <Label>Photo URL</Label>
-              <Input value={form.imageUrl} onChange={(e) => setForm({ ...form, imageUrl: e.target.value })} placeholder="https://…" />
+              <ImagePicker
+                label="Team photo"
+                shape="avatar"
+                value={form.imageUrl}
+                onChange={(url) => setForm({ ...form, imageUrl: url })}
+                hint="A portrait from your device, or paste a hosted URL. Stored in the app's own database."
+              />
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1.5">

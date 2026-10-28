@@ -109,6 +109,14 @@ export const DDL: string[] = [
     CONSTRAINT "Sale_staffId_fkey" FOREIGN KEY ("staffId") REFERENCES "Staff" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
     CONSTRAINT "Sale_appointmentId_fkey" FOREIGN KEY ("appointmentId") REFERENCES "Appointment" ("id") ON DELETE SET NULL ON UPDATE CASCADE
 )`,
+  `CREATE TABLE IF NOT EXISTS "Upload" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "filename" TEXT NOT NULL DEFAULT 'upload.jpg',
+    "mime" TEXT NOT NULL DEFAULT 'image/jpeg',
+    "size" INTEGER NOT NULL,
+    "bytes" BLOB NOT NULL,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+)`,
   `CREATE UNIQUE INDEX IF NOT EXISTS "Customer_phone_key" ON "Customer"("phone")`,
   `CREATE UNIQUE INDEX IF NOT EXISTS "Appointment_ref_key" ON "Appointment"("ref")`,
   `CREATE INDEX IF NOT EXISTS "Appointment_date_status_idx" ON "Appointment"("date", "status")`,

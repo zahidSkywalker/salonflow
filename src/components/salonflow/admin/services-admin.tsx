@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { money, SectionTitle } from "../shared";
+import ImagePicker from "./image-picker";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { Plus, Pencil, Search, PackagePlus } from "lucide-react";
@@ -348,8 +349,13 @@ export default function ServicesAdmin({ currencySymbol, initialTab = "services" 
               <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="min-h-16" />
             </div>
             <div className="space-y-1.5">
-              <Label>Image URL</Label>
-              <Input value={form.imageUrl} onChange={(e) => setForm({ ...form, imageUrl: e.target.value })} placeholder="https://…" />
+              <ImagePicker
+                label="Service photo"
+                shape="square"
+                value={form.imageUrl}
+                onChange={(url) => setForm({ ...form, imageUrl: url })}
+                hint="Upload from your device, or paste a hosted URL. Stored in the app's own database."
+              />
             </div>
             <div className="space-y-1.5">
               <Label>Who performs it ({form.staffIds.length})</Label>

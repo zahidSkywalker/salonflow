@@ -14,6 +14,7 @@ import StaffAdmin from "./staff";
 import ServicesAdmin from "./services-admin";
 import Reports from "./reports";
 import SettingsAdmin from "./settings";
+import AriaChat from "./aria-chat";
 
 const GROUPS: { label: string; items: { key: string; label: string }[] }[] = [
   {
@@ -146,7 +147,7 @@ export default function AdminApp() {
         >
           Lock the console
         </button>
-        <p className="text-[10px] text-sidebar-foreground/30 px-3.5 pt-1.5">SalonFlow · v1.7</p>
+        <p className="text-[10px] text-sidebar-foreground/30 px-3.5 pt-1.5">SalonFlow · v1.8</p>
       </div>
     </nav>
   );
@@ -210,6 +211,9 @@ export default function AdminApp() {
           {view === "settings" && <SettingsAdmin />}
         </main>
       </div>
+
+      {/* Aria — the built-in salon brain (bottom corner, every admin view) */}
+      <AriaChat />
     </div>
   );
 }
